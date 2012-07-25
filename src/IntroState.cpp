@@ -13,9 +13,9 @@ IntroState::IntroState( bool replace ) : GameState( replace ), mHover( false )
 	if( !mTexHover.loadFromFile( "res/hover.png" ) )
 		std::cout << "Resource 'hover.png' is missing!" << std::endl;
 	mSpHover.setTexture( mTexHover );
-	mSpHover.setPosition( 0.0f, 488.0f );
+	mSpHover.setPosition( 0.0f, 461.0f );
 
-	mHoverRect = sf::IntRect( 0, 488, 350, 40 );
+	mHoverRect = sf::IntRect( 0, 461, 350, 40 );
 
 	std::cout << "IntroState Init" << std::endl;
 }

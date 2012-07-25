@@ -12,6 +12,9 @@ PlayState::PlayState( bool replace ) :
 	mGenerator( mWndWidth, mWndHeight ),
 	mVelocityH( 0.0f ),
 	mVelocityV( 0.0f ),
+	mFirstMove( false ),
+	mPause( false ),
+	mGameOver( false ),
 	mPoints( 0.f )
 {
 	mRectBackground = sf::IntRect( 0, 0, mWndWidth*2, mWndHeight ); // Background shall be moved around
@@ -21,6 +24,16 @@ PlayState::PlayState( bool replace ) :
 		std::cout << "Resource 'background.png' is missing!" << std::endl;
 	mSpBackground.setTexture( mTexBackground, true );
 	mSpBackground.setTextureRect( mRectBackground );
+
+	if( !mTexGameOver.loadFromFile( "res/gameover2.png" ) )
+		std::cout << "Resource 'gameover2.png' is missing!" << std::endl;
+	mSpGameOver.setTexture( mTexGameOver, true );
+	mSpGameOver.setPosition( 25.f, 185.f );
+
+	if( !mTexPause.loadFromFile( "res/pause.png" ) )
+		std::cout << "Resource 'pause.png' is missing!" << std::endl;
+	mSpPause.setTexture( mTexPause, true );
+	mSpPause.setPosition( 25.f, 185.f );
 
 	if( !mTexPlayer.loadFromFile( "res/player.png" ) )
 		std::cout << "Resource 'player.png' is missing!" << std::endl;
@@ -66,6 +79,17 @@ void PlayState::HandleEvents( GameEngine& game )
 			case sf::Event::Closed:
 				game.Quit();
 				break;
+			case sf::Event::LostFocus:
+				mPause = true;
+				break;
+			case sf::Event::GainedFocus:
+				mPause = false;
+				break;
+			case sf::Event::MouseButtonReleased:
+			case sf::Event::KeyReleased:
+				if( mGameOver ) // Restart game
+					next = game.Build<PlayState>();
+				break;
 		}
 	}
 }
@@ -75,11 +99,54 @@ void PlayState::Update( GameEngine& game )
 	// Get delta time
 	mDt = mFPS.restart().asSeconds();
 
-	// Get current player location
-	sf::Vector2f pos = mSpPlayer.getPosition();
+	// Check for game over
+	if( mSpPlayer.getPosition().y + mSpPlayer.getGlobalBounds().height > mWndHeight )
+	{
+		if( mFirstMove )
+		{
+			mSpPlayer.setTexture( mTexPlayerGameover );
+			mGameOver = true;
+		}
+		else // Prevent dying on start
+			mVelocityV = 300.f;
+	}
 
-	// Process direct keyboard input
+	if(mGameOver || mPause)
+		return;
 
+	ProcessInput();
+	CollisionDetection();
+	MoveObjects();
+	mGenerator.update( mDt );
+	CalcGamePoints();
+
+	// Player should fall
+	mVelocityV -= 280 * mDt;
+}
+
+void PlayState::Draw( GameEngine& game )
+{
+	// Clear the previous drawing
+	game.screen.clear();
+	game.screen.draw( mSpBackground );
+	
+	if( mGameOver )
+		game.screen.draw( mSpGameOver );
+	else
+	{
+		mGenerator.draw( game.screen );
+		game.screen.draw( mSpPlayer );
+
+		if( mPause )
+			game.screen.draw( mSpPause );
+	}
+
+	game.screen.draw( mScore );
+	game.screen.display();
+}
+
+void PlayState::ProcessInput()
+{
 	// Stop horizontal movement
 	if(!sf::Keyboard::isKeyPressed( sf::Keyboard::Left ) && !sf::Keyboard::isKeyPressed( sf::Keyboard::Right ) && mVelocityH < 20.0f && mVelocityH > -20.0f )
 		mVelocityH = 0;
@@ -96,23 +163,28 @@ void PlayState::Update( GameEngine& game )
 	// Stop if both keys are pressed
 	else if(sf::Keyboard::isKeyPressed(sf::Keyboard::Left) && sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
 		mVelocityH = 0;
+}
 
-	// @TODO DEBUG
-	if(sf::Keyboard::isKeyPressed( sf::Keyboard::Up ) )
-		mVelocityV = 150;
-	if(sf::Keyboard::isKeyPressed( sf::Keyboard::Down ) )
-		mVelocityV = -150;
-
+void PlayState::CollisionDetection()
+{
 	if( mVelocityV < 0.f )
 	{
 		float newVelocity = mGenerator.collision( mSpPlayer );
 		if( newVelocity != 0.f )
 			mVelocityV = newVelocity;
 	}
+}
+
+void PlayState::MoveObjects()
+{
+	// Get current player location
+	sf::Vector2f pos = mSpPlayer.getPosition();
 
 	// Background & Platforms are moving
 	if(mSpPlayer.getPosition().y <= mWndHeight / 3.f)
 	{
+		mFirstMove = true;
+
 		if(mVelocityV < 0) // Player is still falling
 			mSpPlayer.setPosition( pos.x+( mVelocityH * mDt ), pos.y + 30 * mDt);
 		else // Keep the player's y position fixed
@@ -138,27 +210,9 @@ void PlayState::Update( GameEngine& game )
 		mSpPlayer.setPosition( 0.f, mSpPlayer.getPosition().y );
 	else if( mSpPlayer.getPosition().x > mWndWidth - mSpPlayer.getGlobalBounds().width )
 		mSpPlayer.setPosition( mWndWidth - mSpPlayer.getGlobalBounds().width, mSpPlayer.getPosition().y );
-
-	mGenerator.update( mDt );
-
-	CalculatePoints();
-
-	// Player should fall
-	mVelocityV -= 280 * mDt;
 }
 
-void PlayState::Draw( GameEngine& game )
-{
-	// Clear the previous drawing
-	game.screen.clear();
-	game.screen.draw( mSpBackground );
-	mGenerator.draw( game.screen );
-	game.screen.draw( mSpPlayer );
-	game.screen.draw( mScore );
-	game.screen.display();
-}
-
-void PlayState::CalculatePoints()
+void PlayState::CalcGamePoints()
 {
 	// Game points calculation
 	mPoints += (mVelocityV * mDt) / 10.f;

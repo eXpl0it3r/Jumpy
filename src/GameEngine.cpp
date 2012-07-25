@@ -15,9 +15,13 @@ GameEngine::GameEngine( const std::string& title, const unsigned int width, cons
 	else
 		flags = sf::Style::Default;
 
+	if( !mApplicationIcon.loadFromFile("res/jumpy.png") )
+		std::cout << "Resource 'jumpy.png' is missing!" << std::endl;
+
 	// Create render window
 	screen.create( sf::VideoMode( width, height, bpp ), title, flags );
 	screen.setFramerateLimit( 60 );
+	screen.setIcon( mApplicationIcon.getSize().x, mApplicationIcon.getSize().y, mApplicationIcon.getPixelsPtr() );
 
 	std::cout << "GameEngine Init" << std::endl;
 }

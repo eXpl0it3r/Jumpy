@@ -35,6 +35,8 @@ private:
 	// the stack of states
 	std::stack<std::unique_ptr<GameState> > states;
 
+	sf::Image mApplicationIcon;
+
 	bool m_running;
 	bool m_fullscreen;
 };

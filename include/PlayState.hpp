@@ -21,7 +21,10 @@ public:
 	void Draw( GameEngine& game );
 
 private:
-	void CalculatePoints();
+	void ProcessInput();
+	void CollisionDetection();
+	void MoveObjects();
+	void CalcGamePoints();
 
 private:
 	int mWndWidth;
@@ -34,6 +37,11 @@ private:
 	sf::IntRect mRectBackground;
 	float mToper;
 
+	sf::Texture mTexGameOver;
+	sf::Sprite mSpGameOver;
+	sf::Texture mTexPause;
+	sf::Sprite mSpPause;
+
 	sf::Texture mTexPlayer;
 	sf::Texture mTexPlayerGameover;
 	sf::Sprite mSpPlayer;
@@ -41,13 +49,14 @@ private:
 	sf::Font mFreeFont;
 	sf::Text mScore;
 
-	sf::Sprite mSpGen;
-
 	float mVelocityH; // Horizontal velocity
 	float mVelocityV; // Vertical velocity
 	float mDt; // Delta Time
 	sf::Clock mFPS;
 
+	bool mFirstMove;
+	bool mPause;
+	bool mGameOver;
 	float mPoints;
 };
 

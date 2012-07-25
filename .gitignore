@@ -18,9 +18,11 @@ ipch/
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
-*.exe
 *.ilk
 *.pdb
+*.aps
+*.rc
+resource.h
 
 #OS junk files
 [Tt]humbs.db
