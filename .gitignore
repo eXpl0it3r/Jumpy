@@ -1,3 +1,7 @@
+# Custom
+build/
+install/
+
 # Visual Studio
 [Xx]64/
 [Dd]ebug*/
