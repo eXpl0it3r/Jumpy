@@ -3,16 +3,30 @@ name: CI
 on:
   push:
     paths:
+      - .github/workflows/*
       - src/**
       - include/**
       - bin/**
       - CMakeLists.txt
   pull_request:
     paths:
+      - .github/workflows/*
       - src/**
       - include/**
       - bin/**
       - CMakeLists.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
@@ -23,12 +37,11 @@ jobs:
       fail-fast: false
       matrix:
         platform:
-        - { name: Windows VS2019, os: windows-2019 }
-        - { name: Windows VS2022, os: windows-2022 }
-        - { name: Linux GCC,      os: ubuntu-22.04 }
-        - { name: Linux Clang,    os: ubuntu-22.04, flags: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ }
-        - { name: macOS x64,      os: macos-13 }
-        - { name: macOS ARM64,    os: macos-14 }
+        - { name: Windows VS2026, os: windows-2025 }
+        - { name: Linux GCC,      os: ubuntu-26.04 }
+        - { name: Linux Clang,    os: ubuntu-26.04, flags: -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ }
+        - { name: macOS x64,      os: macos-26-intel }
+        - { name: macOS ARM64,    os: macos-26 }
         config:
         - { name: Shared, flags: -DBUILD_SHARED_LIBS=TRUE }
         - { name: Static, flags: -DBUILD_SHARED_LIBS=FALSE }
@@ -36,19 +49,20 @@ jobs:
     steps:
     - name: Install Linux Dependencies
       if: runner.os == 'Linux'
-      run: sudo apt-get update && sudo apt-get install libfreetype-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev
+      run: sudo apt-get update && sudo apt-get install libx11-dev libfreetype-dev libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev
 
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
+      with:
+        persist-credentials: false
 
     - name: Configure
-      shell: bash
-      run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=install ${{matrix.platform.flags}} ${{matrix.config.flags}}
+      env:
+        CMAKE_FLAGS: ${{ matrix.platform.flags }} ${{ matrix.config.flags }}
+      run: cmake -S . -B build -DCMAKE_INSTALL_PREFIX=install $CMAKE_FLAGS
 
     - name: Build
-      shell: bash
       run: cmake --build build --config Release
 
     - name: Install
-      shell: bash
       run: cmake --install build --config Release
